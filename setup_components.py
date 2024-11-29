@@ -33,6 +33,18 @@ class VIPRoleDropDown(disnake.ui.RoleSelect):
         self.guild = guild
         super().__init__(placeholder="Select a Role that'll be used to identify VIP Members", min_values=1,
                          max_values=1)
+    
+    async def callback(self, inter: disnake.MessageInteraction):
+        guild_id = inter.guild_id
+        guild = Guild(guild_id)
+        guild.vip_role = self.values[0].id
+        database.add_update_guild(guild)
+        await inter.response.send_message(f"Your chosen role is: {self.values[0].name}")
+
+class SponsorRoleDropDown(disnake.ui.RoleSelect):
+    def __init__(self, guild: Guild):
+        self.guild = guild
+        super().__init__(placeholder="Select a Role that'll be used to verify Sponsors", min_values=1, max_values=1)
 
     async def callback(self, inter: disnake.MessageInteraction):
         guild_id = inter.guild_id
@@ -40,3 +52,17 @@ class VIPRoleDropDown(disnake.ui.RoleSelect):
         guild.vip_role = self.values[0].id
         database.add_update_guild(guild)
         await inter.response.send_message(f"Your chosen role is: {self.values[0].name}", ephemeral=True)
+
+
+class SpeakerRoleDropDown(disnake.ui.RoleSelect):
+    def __init__(self, guild: Guild):
+        self.guild = guild
+        super().__init__(placeholder="Select a Role that'll be used to verify Speakers", min_values=1, max_values=1)
+
+    async def callback(self, inter: disnake.MessageInteraction):
+        guild_id = inter.guild_id
+        guild = Guild(guild_id)
+        guild.speaker_role = self.values[0].id
+        database.add_update_guild(guild)
+        await inter.response.send_message(f"Your chosen role is: {self.values[0].name}")
+
