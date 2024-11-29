@@ -2,14 +2,30 @@ import os
 
 import pymongo
 import dotenv
+from infisical_sdk import InfisicalSDKClient
 from pymongo.server_api import ServerApi
 
 from Guild import Guild
 
 dotenv.load_dotenv()
 
-uri = f"mongodb+srv://{os.environ.get('DATABASE_USERNAME')}:{os.environ.get('DATABASE_PASSWORD')}@cusecbot.z72vt.mongodb.net/?retryWrites=true&w=majority&appName=CUSECBot"
+print("[INFO] Connecting to Infisical")
+i_client = InfisicalSDKClient(host="https://app.infisical.com")
+i_client.auth.universal_auth.login(client_id=os.environ.get("I_CLIENT_ID"),
+                                   client_secret=os.environ.get("I_CLIENT_SECRET"))
+i_response = i_client.secrets.get_secret_by_name(secret_name="MONGODB_CLOUD_USERNAME",
+                                                 project_id="fcdb0041-ad1d-4fa6-854d-0745640829d0",
+                                                 environment_slug="prod", secret_path="/")
+print("[INFO] Received MONGODB_CLOUD_USERNAME")
+database_username = i_response.secret.secret_value
 
+i_response2 = i_client.secrets.get_secret_by_name(secret_name="MONGODB_CLOUD_PASSWORD",
+                                                  project_id="fcdb0041-ad1d-4fa6-854d-0745640829d0",
+                                                  environment_slug="prod", secret_path="/")
+database_password = i_response2.secret.secret_value
+print("[INFO] Received MONGODB_CLOUD_USERNAME")
+
+uri = f"mongodb+srv://{database_username}:{database_password}@cusecbot.z72vt.mongodb.net/?retryWrites=true&w=majority&appName=CUSECBot"
 
 my_client = pymongo.MongoClient(uri, server_api=ServerApi('1'))
 my_client.admin.command('ping')
