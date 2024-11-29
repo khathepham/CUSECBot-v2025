@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 import verification_modal
 from verification_modal import AttendeeVerificaionModal, OSSVerificationModal
-from setup_components import DelegateRoleDropDown
+from setup_components import DelegateRoleDropDown, BaseView
 import database
 
 print("[INFO] Loading env variables")
@@ -70,12 +70,6 @@ async def verification_setup(inter: disnake.ApplicationCommandInteraction):
 @bot.event
 async def on_ready():
     print(f"{bot.user} has logged onto Discord!")
-
-
-class BaseView(disnake.ui.View):
-    def __init__(self, component):
-        super().__init__()
-        self.add_item(component)
 
 
 if __name__ == '__main__':

@@ -17,6 +17,7 @@ class Guild:
 
     def to_json(self):
         return {
+            "_id": self.guild_id,
             "guild_id": self.guild_id,
             "verification_channel": self.verification_requests_channel,
             "logs_channel": self.logs_channel,
