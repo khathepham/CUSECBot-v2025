@@ -44,11 +44,6 @@ def add_update_guild(guild: Guild):
 
         guild_json = guild.to_json()
 
-        keys = list(guild_json.keys())
-        for k in keys:
-            if guild_json[k] is None:
-                guild_json.pop(k)
-
         result = guilds.replace_one(db_filter, guild_json, True)
     return result
 
@@ -56,10 +51,12 @@ def add_update_guild(guild: Guild):
 def get_guild_by_guild(guild: Guild):
     global guilds
     result = guilds.find_one({"_id": guild.guild_id})
-    return result
+    guild_obj = Guild.from_json(result)
+    return guild_obj
 
 
 def get_guild_by_id(guild_id: int):
     global guilds
     result = guilds.find_one({"_id": guild_id})
-    return result
+    guild_obj = Guild.from_json(result)
+    return guild_obj

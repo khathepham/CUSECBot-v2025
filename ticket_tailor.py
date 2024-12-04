@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import os
 from typing import Optional
 
-
 load_dotenv()
 
 i_client = InfisicalSDKClient(host="https://app.infisical.com")
@@ -31,12 +30,14 @@ baseurl = "https://api.tickettailor.com/v1"
 
 
 class Ticket:
-    def __init__(self, ticket_code: str, emails: set, first_name: str, last_name: str, custom_questions: list):
+    def __init__(self, ticket_code: str, emails: set, first_name: str, last_name: str, custom_questions: list,
+                 ticket_type: str):
         self.ticket_code = ticket_code
         self.emails = emails
         self.first_name = first_name
         self.last_name = last_name
         self.custom_question = custom_questions
+        self.ticket_type = ticket_type
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}: {self.ticket_code}; {self.emails}"
@@ -48,12 +49,13 @@ class Ticket:
         first_name = js_object.get("first_name")
         last_name = js_object.get("last_name")
         custom_questions = js_object.get("custom_questions")
+        ticket_type = js_object.get("description")
 
         for q in custom_questions:
             if q["question"] in ("What's a good personal email for you?", "What is your student email address?"):
                 emails.add(str(q["answer"]).strip().lower())
 
-        return Ticket(ticket_code, emails, first_name, last_name, custom_questions)
+        return Ticket(ticket_code, emails, first_name, last_name, custom_questions, ticket_type)
 
 
 def get_ticket_by_ticket_code(ticket_code: str) -> Optional[Ticket]:
@@ -62,7 +64,8 @@ def get_ticket_by_ticket_code(ticket_code: str) -> Optional[Ticket]:
 
     params = {
         "event_id": event_id,
-        "barcode": ticket_code
+        "barcode": ticket_code,
+        "status": "valid"
     }
     url = f"{baseurl}/issued_tickets"
     prepared_request = PreparedRequest()

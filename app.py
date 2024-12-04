@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 
 import verification_modal
-from verification_modal import AttendeeVerificaionModal, OSSVerificationModal
+from verification_modal import AttendeeVerificationModal, OSSVerificationModal
 from setup_components import DelegateRoleDropDown, BaseView
 import database
 
@@ -34,24 +34,25 @@ bot = commands.Bot(command_prefix="^", intents=intents, command_sync_flags=comma
 
 @bot.slash_command(description="Pongs your Ping")
 async def ping(inter: disnake.ApplicationCommandInteraction):
-    await inter.response.send_message('pong', ephemeral=True)
+    await inter.response.send_message('pong')
 
 
 @bot.slash_command(description="Verify to gain access to the rest of the server!")
 async def verify(inter: disnake.ApplicationCommandInteraction):
+    if database.get_guild_by_id(inter.guild_id) is None:
+        inter.response.send_message("Verification has not been set up yet. Please contact the admins to set up "
+                                    "verification for this server.")
     pass
 
 
 @verify.sub_command(description="For those who bought or received a ticket, verify now!")
 async def attendee(inter: disnake.ApplicationCommandInteraction):
-    modal = AttendeeVerificaionModal()
-    await inter.response.send_modal(modal=modal)
+    await verify_attendee(inter)
 
 
 @verify.sub_command(description="For Sponsors, Speakers, Keynotes, and Panelists to verify!")
 async def sponsor(inter: disnake.ApplicationCommandInteraction):
-    modal = OSSVerificationModal(verification_modal.ConferenceRole.SPONSOR)
-    await inter.response.send_modal(modal=modal)
+    await verify_sponsor(inter)
 
 
 @verify.sub_command(description="For Speakers, Keynotes, and Panelists to verify!")
@@ -61,10 +62,62 @@ async def speaker_keynote_panelist(inter: disnake.ApplicationCommandInteraction)
 
 
 @bot.slash_command(description="For Admins to set up the verification bot")
+@commands.default_member_permissions(manage_guild=True, moderate_members=True)
 async def verification_setup(inter: disnake.ApplicationCommandInteraction):
     guild = database.get_guild_by_id(inter.guild_id)
     delegate_role_select = DelegateRoleDropDown(guild)
-    await inter.response.send_message("What role do you want your verified delegates to have?", view=BaseView(delegate_role_select), ephemeral=True)
+    await inter.response.send_message("What role do you want your verified delegates to have?",
+                                      view=BaseView(delegate_role_select), ephemeral=True)
+
+
+@bot.slash_command(description="To create a permanent verification prompt.")
+@commands.default_member_permissions(moderate_members=True)
+async def create_verification_prompt(inter: disnake.ApplicationCommandInteraction):
+    await inter.channel.send(
+        "How would you like to verify?",
+        components=[
+            disnake.ui.Button(label="Verify Delegate/Attendee Ticket", style=disnake.ButtonStyle.primary,
+                              custom_id="attendee"),
+            disnake.ui.Button(label="Verify as a Sponsor", style=disnake.ButtonStyle.secondary,
+                              custom_id="sponsor"),
+            disnake.ui.Button(label="Verify as a Speaker", style=disnake.ButtonStyle.secondary,
+                              custom_id="speaker"),
+        ]
+    )
+
+
+@bot.listen("on_button_click")
+async def verify_listener(inter: disnake.MessageInteraction):
+    if inter.component.custom_id not in ["sponsor", "speaker", "attendee"]:
+        return
+
+    if inter.component.custom_id == "sponsor":
+        await verify_sponsor(inter)
+    elif inter.component.custom_id == "speaker":
+        await verify_speaker(inter)
+    elif inter.component.custom_id == "attendee":
+        await verify_attendee(inter)
+
+
+@bot.listen("on_button_click")
+async def re_verify_attendee_listener(inter: disnake.MessageInteraction):
+    await verify_attendee(inter)
+
+
+async def verify_sponsor(inter: disnake.Interaction):
+    modal = OSSVerificationModal(verification_modal.ConferenceRole.SPONSOR)
+    await inter.response.send_modal(modal=modal)
+
+
+async def verify_speaker(inter: disnake.Interaction):
+    modal = OSSVerificationModal(verification_modal.ConferenceRole.SPEAKER)
+    await inter.response.send_modal(modal=modal)
+
+
+async def verify_attendee(inter: disnake.Interaction):
+    modal = AttendeeVerificationModal()
+    await inter.response.send_modal(modal=modal)
+    pass
 
 
 @bot.event
