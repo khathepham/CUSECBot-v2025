@@ -42,6 +42,8 @@ class AttendeeVerificationModal(disnake.ui.Modal):
     async def callback(self, inter: disnake.ModalInteraction):
         ticket_code = inter.text_values.get("ticket_code").strip()
         email = inter.text_values.get("email").strip()
+        guild = database.get_guild_by_id(inter.guild_id)
+        verify_channel = inter.guild.get_channel(guild.logs_channel)
 
         ticket = ticket_tailor.get_ticket_by_ticket_code(ticket_code)
         if ticket is None:
@@ -55,7 +57,12 @@ class AttendeeVerificationModal(disnake.ui.Modal):
                                   custom_id="reverify"),
             ]
             await inter.response.send_message(embed=embed, components=components, ephemeral=True)
-            logger.info(f"{inter.user.global_name} was unable to verify using {ticket_code} {email} due to an invalid ticket code.")
+            logger.info(
+                f"{inter.user.global_name} was unable to verify using {ticket_code} {email} due to an invalid ticket code.")
+            await verify_channel.send(embed=disnake.Embed(
+                title="Failed Verification",
+                description=f"{inter.user.mention} was unable to verify using {ticket_code}, {email}. Invalid or void ticket code."
+            ))
         elif email not in ticket.emails:
             embed = disnake.Embed(title="Unable to Verify",
                                   description="We found your ticket, but your email doesn't quite match. Try again?")
@@ -66,21 +73,24 @@ class AttendeeVerificationModal(disnake.ui.Modal):
                                   custom_id="reverify"),
             ]
             await inter.response.send_message(embed=embed, components=components, ephemeral=True)
-            logger.info(f"{inter.user.global_name} was unable to verify using {ticket_code} {email} due to an invalid email. Ticket was found.")
+            logger.info(
+                f"{inter.user.global_name} was unable to verify using {ticket_code} {email} due to an invalid email. Ticket was found.")
+            await verify_channel.send(embed=disnake.Embed(
+                title="Failed Verification",
+                description=f"{inter.user.mention} was unable to verify using {ticket_code}, {email}. Ticket was found, but email does not match."
+            ))
 
         if ticket is not None and email in ticket.emails:
             # Add Role
-            guild = database.get_guild_by_id(inter.guild_id)
             await inter.user.add_roles(inter.guild.get_role(guild.delegate_role))
 
             if "VIP" in ticket.ticket_type:
                 await inter.user.add_roles(inter.guild.get_role(guild.vip_role))
 
             # Notify Verify Channel
-            verify_channel = inter.guild.get_channel(guild.verification_requests_channel)
             embed = disnake.Embed(
                 title="Attendee Verified",
-                description=f"{ticket.first_name} {ticket.last_name} has been verified with ticket code {ticket.ticket_code} and email {email}"
+                description=f"**{ticket.first_name} {ticket.last_name}** ({inter.user.mention}) has been verified with ticket code {ticket.ticket_code} and email {email}"
             )
 
             await verify_channel.send(embed=embed)
@@ -88,8 +98,8 @@ class AttendeeVerificationModal(disnake.ui.Modal):
             embed = disnake.Embed(title=f"Hi {ticket.first_name}, You're Verified!",
                                   description="You should be able to see the verified-only channels (which is most of the server)")
             await inter.response.send_message(embed=embed, ephemeral=True)
-            logger.info(f"{inter.user.global_name} was able to verify using {ticket_code} {email} as {ticket.first_name} {ticket.last_name}")
-
+            logger.info(
+                f"{inter.user.global_name} was able to verify using {ticket_code} {email} as {ticket.first_name} {ticket.last_name}")
 
 
 class ConferenceRole(Enum):
@@ -152,5 +162,5 @@ class OSSVerificationModal(disnake.ui.Modal):
                         f"{user.mention}"
         )
 
-        await verification_log_channel.send(content=f"{mod_role.mention}", embed=embed)
-
+        # await verification_log_channel.send(content=f"{mod_role.mention}", embed=embed)
+        await verification_log_channel.send(embed=embed)
