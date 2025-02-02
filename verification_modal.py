@@ -41,7 +41,7 @@ class AttendeeVerificationModal(disnake.ui.Modal):
     # The callback received when the user input is completed.
     async def callback(self, inter: disnake.ModalInteraction):
         ticket_code = inter.text_values.get("ticket_code").strip()
-        email = inter.text_values.get("email").strip()
+        email = inter.text_values.get("email").strip().lower()
         guild = database.get_guild_by_id(inter.guild_id)
         verify_channel = inter.guild.get_channel(guild.logs_channel)
 
